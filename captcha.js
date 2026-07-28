@@ -2,6 +2,7 @@ const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
 let user = (params.get("user") || "").trim().slice(0, 32);
 let level = ["easy", "normal", "hard"].includes(params.get("level")) ? params.get("level") : "normal";
+const localRedirectUri = (params.get("redirect_uri") || "").trim();
 const apiUrl = (window.CRAFTPICK_API_URL || "").replace(/\/$/, "");
 
 const flow = document.querySelector("#captcha-flow");
@@ -165,6 +166,26 @@ function completeVerification(serverResult = null) {
     user,
     token
   }, window.location.origin);
+
+  const destination = serverResult?.redirectUrl || getLocalRedirectUrl(token);
+  if (destination) {
+    successState.querySelector("p").textContent = "Vérification réussie. Redirection en cours…";
+    setTimeout(() => window.location.assign(destination), 1200);
+  }
+}
+
+function getLocalRedirectUrl(token) {
+  if (!localRedirectUri) return "";
+  try {
+    const url = new URL(localRedirectUri);
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    url.searchParams.set("captcha_status", "success");
+    url.searchParams.set("captcha_id", id);
+    url.searchParams.set("captcha_token", token);
+    return url.href;
+  } catch {
+    return "";
+  }
 }
 
 function blockVerification() {
