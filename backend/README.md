@@ -71,3 +71,7 @@ curl -X POST https://captcha-api.example.com/api/tokens/verify \
 ## Important
 
 Les défis sont conservés en mémoire pendant cinq minutes. Un redémarrage du processus invalide les CAPTCHA en cours, ce qui évite de stocker des réponses sur disque. Pour plusieurs instances du backend, remplacez les `Map` par Redis.
+
+## Nginx et HTTPS
+
+Une configuration prête pour `captcha-api.craftpick.fr` et les commandes Certbot se trouvent dans [`nginx/`](nginx/).
