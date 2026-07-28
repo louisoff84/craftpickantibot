@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Vérification — Craftpick Captcha</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="captcha-page">
+  <div class="background-glow glow-one"></div>
+  <div class="background-glow glow-two"></div>
+
+  <main class="verification-shell">
+    <a class="brand centered-brand" href="./">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span>Craftpick <strong>Captcha</strong></span>
+    </a>
+
+    <section class="panel verification-panel" id="verification-panel">
+      <div class="verification-intro">
+        <span class="large-shield" aria-hidden="true">✓</span>
+        <p class="eyebrow">Contrôle de sécurité</p>
+        <h1>Vérifions que vous êtes humain</h1>
+        <p>Cette vérification a été demandée pour <strong id="target-user">un utilisateur</strong>.</p>
+      </div>
+
+      <div id="invalid-link" class="notice error-notice" hidden>
+        Ce lien CAPTCHA est invalide ou incomplet.
+      </div>
+
+      <div id="captcha-flow" hidden>
+        <button id="human-checkbox" class="recaptcha-box" type="button" aria-pressed="false">
+          <span class="fake-checkbox" aria-hidden="true"><span></span></span>
+          <span class="checkbox-copy">Je ne suis pas un robot</span>
+          <span class="mini-brand"><b>C</b><small>Craftpick<br>Captcha</small></span>
+        </button>
+
+        <div id="challenge" class="challenge" hidden>
+          <div class="challenge-top">
+            <div>
+              <p class="eyebrow">Dernière étape</p>
+              <h2 id="challenge-title">Résolvez ce défi</h2>
+            </div>
+            <button id="refresh-challenge" type="button" title="Nouveau défi" aria-label="Générer un nouveau défi">↻</button>
+          </div>
+
+          <canvas id="captcha-canvas" width="520" height="150" hidden></canvas>
+          <p id="math-question" class="math-question" hidden></p>
+
+          <form id="answer-form">
+            <label for="answer">Votre réponse</label>
+            <div class="answer-row">
+              <input id="answer" autocomplete="off" inputmode="text" required placeholder="Saisissez la réponse">
+              <button type="submit">Valider</button>
+            </div>
+          </form>
+          <p id="attempt-message" class="attempt-message" aria-live="polite"></p>
+        </div>
+
+        <div id="success-state" class="final-state success-state" hidden>
+          <span>✓</span>
+          <h2>Vérification réussie</h2>
+          <p>Vous avez été identifié comme humain.</p>
+          <small id="verification-token"></small>
+        </div>
+
+        <div id="blocked-state" class="final-state blocked-state" hidden>
+          <span>!</span>
+          <h2>Vérification refusée</h2>
+          <p>Trop de réponses incorrectes. Générez un nouveau lien pour recommencer.</p>
+        </div>
+      </div>
+
+      <div class="security-meta">
+        <span>🔒 Connexion sécurisée</span>
+        <span id="captcha-id"></span>
+      </div>
+    </section>
+    <p class="made-by">Made by <strong>Craftpick</strong> · Confidentialité · Sécurité</p>
+  </main>
+
+  <script src="captcha.js"></script>
+</body>
+</html>
