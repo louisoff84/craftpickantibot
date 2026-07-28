@@ -224,6 +224,23 @@ function createChallenge(level) {
   };
 }
 
+function rotateChallenge(item) {
+  const generated = createChallenge(item.level);
+  const salt = randomBytes(16).toString("hex");
+  const now = Date.now();
+  Object.assign(item, {
+    type: generated.type,
+    prompt: generated.prompt,
+    svg: generated.svg,
+    answerHash: hashAnswer(generated.answer, salt),
+    salt,
+    attempts: 0,
+    firstDisplayedAt: null,
+    expiresAt: now + CHALLENGE_TTL
+  });
+  return item;
+}
+
 function base64url(value) {
   return Buffer.from(value).toString("base64url");
 }
@@ -257,9 +274,6 @@ function verifyToken(token) {
 
 function cleanExpiredData() {
   const now = Date.now();
-  for (const [id, challenge] of challenges) {
-    if (challenge.expiresAt <= now) challenges.delete(id);
-  }
   for (const [key, limit] of rateLimits) {
     if (limit.resetAt <= now) rateLimits.delete(key);
   }
@@ -307,24 +321,22 @@ const server = createServer(async (request, response) => {
       if (!user) return sendJson(response, 400, { error: "Le nom de l'utilisateur est obligatoire." }, cors);
 
       const id = generateId();
-      const generated = createChallenge(level);
-      const salt = randomBytes(16).toString("hex");
       const now = Date.now();
-      challenges.set(id, {
+      const item = {
         id,
         user,
         level,
         redirectUri,
-        type: generated.type,
-        prompt: generated.prompt,
-        svg: generated.svg,
-        answerHash: hashAnswer(generated.answer, salt),
-        salt,
-        attempts: 0,
         createdAt: now,
-        firstDisplayedAt: null,
-        expiresAt: now + CHALLENGE_TTL
-      });
+        validationCount: 0
+      };
+      rotateChallenge(item);
+      challenges.set(id, item);
+
+      if (challenges.size > 10_000) {
+        const oldestId = challenges.keys().next().value;
+        if (oldestId && oldestId !== id) challenges.delete(oldestId);
+      }
 
       const frontendLink = new URL(`${config.frontendUrl}/craftpickantibot/captcha.html`);
       frontendLink.searchParams.set("id", id);
@@ -340,9 +352,11 @@ const server = createServer(async (request, response) => {
     const imageMatch = path.match(/^\/api\/captchas\/(\d{8})\/image\.svg$/);
     if (request.method === "GET" && imageMatch) {
       const item = challenges.get(imageMatch[1]);
-      if (!item || item.expiresAt <= Date.now() || !item.svg) {
+      if (!item) {
         return sendJson(response, 404, { error: "Image CAPTCHA introuvable." }, cors);
       }
+      if (item.expiresAt <= Date.now()) rotateChallenge(item);
+      if (!item.svg) return sendJson(response, 404, { error: "Image CAPTCHA introuvable." }, cors);
       response.writeHead(200, {
         ...cors,
         "Content-Type": "image/svg+xml; charset=utf-8",
@@ -360,10 +374,8 @@ const server = createServer(async (request, response) => {
         return sendJson(response, 429, { error: "Trop de demandes." }, cors);
       }
       const item = challenges.get(captchaMatch[1]);
-      if (!item || item.expiresAt <= Date.now()) {
-        challenges.delete(captchaMatch[1]);
-        return sendJson(response, 404, { error: "Ce CAPTCHA est introuvable ou expiré." }, cors);
-      }
+      if (!item) return sendJson(response, 404, { error: "Ce CAPTCHA est introuvable." }, cors);
+      if (item.expiresAt <= Date.now()) rotateChallenge(item);
       if (!item.firstDisplayedAt) item.firstDisplayedAt = Date.now();
       return sendJson(response, 200, {
         id: item.id,
@@ -388,9 +400,10 @@ const server = createServer(async (request, response) => {
       }
 
       const item = challenges.get(verifyMatch[1]);
-      if (!item || item.expiresAt <= Date.now()) {
-        challenges.delete(verifyMatch[1]);
-        return sendJson(response, 404, { error: "Ce CAPTCHA est introuvable ou expiré." }, cors);
+      if (!item) return sendJson(response, 404, { error: "Ce CAPTCHA est introuvable." }, cors);
+      if (item.expiresAt <= Date.now()) {
+        rotateChallenge(item);
+        return sendJson(response, 409, { error: "Le défi a expiré. Rechargez la page pour obtenir le nouveau défi." }, cors);
       }
       if (item.attempts >= MAX_ATTEMPTS) {
         return sendJson(response, 403, { error: "Ce CAPTCHA est bloqué." }, cors);
@@ -431,7 +444,8 @@ const server = createServer(async (request, response) => {
         destination.searchParams.set("captcha_token", token);
         redirectUrl = destination.href;
       }
-      challenges.delete(item.id);
+      item.validationCount += 1;
+      rotateChallenge(item);
       return sendJson(response, 200, {
         success: true,
         token,
