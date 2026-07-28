@@ -1,0 +1,73 @@
+# Backend Craftpick Captcha
+
+API Node.js sans dépendance externe. Elle crée les défis côté serveur, garde la réponse secrète, limite les essais et délivre un jeton HMAC vérifiable.
+
+## Installation
+
+```bash
+cd backend
+cp .env.example .env
+nano .env
+npm start
+```
+
+Node.js 20 ou plus récent est nécessaire. Les variables du fichier `.env` ne sont pas chargées automatiquement sans gestionnaire de processus. Avec Pterodactyl, Docker ou systemd, ajoutez-les directement dans l'environnement du serveur.
+
+Créez les deux secrets avec :
+
+```bash
+openssl rand -hex 32
+```
+
+## Variables
+
+| Variable | Description |
+|---|---|
+| `PORT` | Port HTTP, `3000` par défaut |
+| `HOST` | Adresse d'écoute, `0.0.0.0` par défaut |
+| `PUBLIC_API_URL` | URL publique HTTPS de l'API |
+| `FRONTEND_URL` | Origine autorisée, par défaut `https://louisoff84.github.io` |
+| `TOKEN_SECRET` | Secret HMAC d'au moins 32 caractères |
+| `ADMIN_API_KEY` | Clé privée utilisée pour vérifier les jetons |
+| `TRUST_PROXY` | `true` derrière Nginx ou Cloudflare |
+
+## API
+
+### Créer un CAPTCHA
+
+```http
+POST /api/captchas
+Content-Type: application/json
+
+{"user":"Louis","level":"normal"}
+```
+
+### Obtenir le défi
+
+```http
+GET /api/captchas/65144351
+```
+
+### Valider la réponse
+
+```http
+POST /api/captchas/65144351/verify
+Content-Type: application/json
+
+{"answer":"ABC123"}
+```
+
+### Vérifier le jeton depuis votre serveur
+
+Ne faites jamais cet appel depuis du JavaScript public, car `ADMIN_API_KEY` doit rester privée.
+
+```bash
+curl -X POST https://captcha-api.example.com/api/tokens/verify \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: VOTRE_CLE_PRIVEE" \
+  -d '{"token":"JETON_RECU"}'
+```
+
+## Important
+
+Les défis sont conservés en mémoire pendant cinq minutes. Un redémarrage du processus invalide les CAPTCHA en cours, ce qui évite de stocker des réponses sur disque. Pour plusieurs instances du backend, remplacez les `Map` par Redis.
