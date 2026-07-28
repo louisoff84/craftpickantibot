@@ -1,7 +1,8 @@
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
-const user = (params.get("user") || "").trim().slice(0, 32);
-const level = ["easy", "normal", "hard"].includes(params.get("level")) ? params.get("level") : "normal";
+let user = (params.get("user") || "").trim().slice(0, 32);
+let level = ["easy", "normal", "hard"].includes(params.get("level")) ? params.get("level") : "normal";
+const apiUrl = (window.CRAFTPICK_API_URL || "").replace(/\/$/, "");
 
 const flow = document.querySelector("#captcha-flow");
 const invalidLink = document.querySelector("#invalid-link");
@@ -11,6 +12,7 @@ const checkbox = document.querySelector("#human-checkbox");
 const challenge = document.querySelector("#challenge");
 const title = document.querySelector("#challenge-title");
 const canvas = document.querySelector("#captcha-canvas");
+const captchaImage = document.querySelector("#captcha-image");
 const mathQuestion = document.querySelector("#math-question");
 const answerForm = document.querySelector("#answer-form");
 const answerInput = document.querySelector("#answer");
@@ -24,6 +26,7 @@ let expectedAnswer = "";
 let attempts = 0;
 let refreshes = 0;
 let interactionStartedAt = 0;
+let serverChallenge = null;
 
 function hashString(value) {
   let hash = 2166136261;
@@ -51,6 +54,7 @@ function generateTextChallenge(random) {
   expectedAnswer = Array.from({ length }, () => alphabet[Math.floor(random() * alphabet.length)]).join("");
   title.textContent = "Recopiez le code affiché";
   mathQuestion.hidden = true;
+  captchaImage.hidden = true;
   canvas.hidden = false;
 
   const context = canvas.getContext("2d");
@@ -102,11 +106,30 @@ function generateMathChallenge(random) {
   expectedAnswer = String(multiply ? first * second : first + second);
   title.textContent = "Résolvez le calcul";
   canvas.hidden = true;
+  captchaImage.hidden = true;
   mathQuestion.hidden = false;
   mathQuestion.textContent = `${first} ${multiply ? "×" : "+"} ${second} = ?`;
 }
 
 function createChallenge() {
+  if (serverChallenge) {
+    title.textContent = serverChallenge.prompt;
+    if (serverChallenge.type === "image") {
+      canvas.hidden = true;
+      mathQuestion.hidden = true;
+      captchaImage.src = serverChallenge.imageUrl;
+      captchaImage.hidden = false;
+    } else {
+      canvas.hidden = true;
+      captchaImage.hidden = true;
+      mathQuestion.textContent = serverChallenge.prompt;
+      mathQuestion.hidden = false;
+    }
+    answerInput.value = "";
+    attemptMessage.textContent = "";
+    answerInput.focus();
+    return;
+  }
   const random = seededRandom(hashString(`${id}:${level}:${refreshes}`));
   const useMath = level === "easy" || (level === "hard" && refreshes % 2 === 1);
   if (useMath) generateMathChallenge(random);
@@ -116,14 +139,14 @@ function createChallenge() {
   answerInput.focus();
 }
 
-function completeVerification() {
+function completeVerification(serverResult = null) {
   checkbox.classList.add("checked");
   checkbox.setAttribute("aria-pressed", "true");
   checkbox.disabled = true;
   challenge.hidden = true;
   successState.hidden = false;
   const tokenSeed = hashString(`${id}:${user}:${Date.now()}:${performance.now()}`);
-  const token = `CP-${id}-${tokenSeed.toString(36).toUpperCase()}`;
+  const token = serverResult?.token || `CP-${id}-${tokenSeed.toString(36).toUpperCase()}`;
   verificationToken.textContent = `Jeton de vérification : ${token}`;
   sessionStorage.setItem(`craftpick-captcha-${id}`, JSON.stringify({
     verified: true,
@@ -146,10 +169,40 @@ function blockVerification() {
   blockedState.hidden = false;
 }
 
-if (!id || !/^\d{8}$/.test(id) || !user) {
-  invalidLink.hidden = false;
-  captchaId.textContent = id ? `ID #${id}` : "ID absent";
-} else {
+async function loadCaptcha() {
+  if (!id || !/^\d{8}$/.test(id)) {
+    invalidLink.hidden = false;
+    captchaId.textContent = id ? `ID #${id}` : "ID absent";
+    return;
+  }
+
+  if (apiUrl) {
+    try {
+      const response = await fetch(`${apiUrl}/api/captchas/${id}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "CAPTCHA indisponible.");
+      user = payload.user;
+      level = payload.level;
+      serverChallenge = payload.challenge;
+      flow.hidden = false;
+      targetUser.textContent = user;
+      captchaId.textContent = `ID #${id}`;
+      refreshButton.hidden = true;
+      return;
+    } catch (error) {
+      invalidLink.hidden = false;
+      invalidLink.textContent = error.message;
+      captchaId.textContent = `ID #${id}`;
+      return;
+    }
+  }
+
+  if (!user) {
+    invalidLink.hidden = false;
+    captchaId.textContent = `ID #${id}`;
+    return;
+  }
+
   flow.hidden = false;
   targetUser.textContent = user;
   captchaId.textContent = `ID #${id}`;
@@ -168,6 +221,12 @@ if (!id || !/^\d{8}$/.test(id) || !user) {
     }
   }
 }
+
+if (!id || !/^\d{8}$/.test(id)) {
+  invalidLink.hidden = false;
+  captchaId.textContent = id ? `ID #${id}` : "ID absent";
+}
+loadCaptcha();
 
 checkbox.addEventListener("click", () => {
   if (checkbox.classList.contains("loading")) return;
@@ -188,13 +247,38 @@ refreshButton.addEventListener("click", () => {
   createChallenge();
 });
 
-answerForm.addEventListener("submit", (event) => {
+answerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const elapsed = performance.now() - interactionStartedAt;
   const supplied = answerInput.value.trim().toUpperCase();
 
   if (elapsed < 900) {
     attemptMessage.textContent = "Validation trop rapide. Prenez le temps de lire le défi.";
+    return;
+  }
+
+  if (apiUrl && serverChallenge) {
+    const submitButton = answerForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const response = await fetch(`${apiUrl}/api/captchas/${id}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer: supplied })
+      });
+      const payload = await response.json();
+      if (response.ok && payload.success) {
+        completeVerification(payload);
+        return;
+      }
+      attempts = 3 - (payload.attemptsRemaining ?? 0);
+      attemptMessage.textContent = payload.error || "Réponse incorrecte.";
+      if (payload.attemptsRemaining === 0) blockVerification();
+    } catch {
+      attemptMessage.textContent = "Impossible de contacter le serveur de vérification.";
+    } finally {
+      submitButton.disabled = false;
+    }
     return;
   }
 
