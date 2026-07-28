@@ -88,7 +88,7 @@ curl -X POST https://captcha-api.example.com/api/tokens/verify \
 
 ## Important
 
-Les défis sont conservés en mémoire pendant cinq minutes. Un redémarrage du processus invalide les CAPTCHA en cours, ce qui évite de stocker des réponses sur disque. Pour plusieurs instances du backend, remplacez les `Map` par Redis.
+Chaque défi visuel expire après cinq minutes, mais son ID reste réutilisable : l'API génère automatiquement un nouveau défi pour le même lien après expiration ou après une validation réussie. Chaque réussite produit un nouveau jeton signé. Un redémarrage du processus invalide les ID en mémoire. Pour conserver les ID après redémarrage ou utiliser plusieurs instances, remplacez les `Map` par Redis ou une base de données.
 
 ## Nginx et HTTPS
 
