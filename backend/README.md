@@ -50,6 +50,7 @@ Après validation, l'API ajoute automatiquement à la redirection :
 ```
 
 L'origine de `redirectUri` doit être présente dans `ALLOWED_REDIRECT_ORIGINS`.
+Cette valeur est enregistrée côté serveur depuis le dashboard et n'est pas exposée dans le lien CAPTCHA public.
 
 ### Obtenir le défi
 
