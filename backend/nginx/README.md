@@ -36,7 +36,7 @@ PORT=3000
 HOST=127.0.0.1
 PUBLIC_API_URL=https://captcha-api.craftpick.fr
 FRONTEND_URL=https://louisoff84.github.io
-ALLOWED_REDIRECT_ORIGINS=https://craftpick.fr,https://www.craftpick.fr
+ALLOWED_REDIRECT_ORIGINS=*
 TRUST_PROXY=true
 ```
 
