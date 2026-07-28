@@ -187,6 +187,16 @@ form > label, .challenge label {
   color: var(--text);
   background: transparent;
 }
+.remember-choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 10px 2px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.remember-choice input { accent-color: var(--primary); }
 
 .difficulty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
 .choice { cursor: pointer; }
