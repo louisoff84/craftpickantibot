@@ -325,7 +325,6 @@ const server = createServer(async (request, response) => {
 
       const frontendLink = new URL(`${config.frontendUrl}/craftpickantibot/captcha.html`);
       frontendLink.searchParams.set("id", id);
-      if (redirectUri) frontendLink.searchParams.set("redirect_uri", redirectUri);
       return sendJson(response, 201, {
         id,
         user,
