@@ -337,7 +337,7 @@ const server = createServer(async (request, response) => {
           type: item.type,
           prompt: item.prompt,
           imageUrl: item.type === "image"
-            ? `${config.publicApiUrl || `http://${request.headers.host}`}/api/captchas/${item.id}/image.svg`
+            ? `/api/captchas/${item.id}/image.svg`
             : null
         },
         attemptsRemaining: MAX_ATTEMPTS - item.attempts,
