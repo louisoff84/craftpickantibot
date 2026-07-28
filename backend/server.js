@@ -26,6 +26,12 @@ const config = {
   host: process.env.HOST || "0.0.0.0",
   publicApiUrl: (process.env.PUBLIC_API_URL || "").replace(/\/$/, ""),
   frontendUrl: (process.env.FRONTEND_URL || "https://louisoff84.github.io").replace(/\/$/, ""),
+  allowedRedirectOrigins: new Set(
+    (process.env.ALLOWED_REDIRECT_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim().replace(/\/$/, ""))
+      .filter(Boolean)
+  ),
   tokenSecret: process.env.TOKEN_SECRET || "",
   adminApiKey: process.env.ADMIN_API_KEY || "",
   trustProxy: process.env.TRUST_PROXY === "true"
@@ -118,6 +124,30 @@ function normalizeUser(value) {
 
 function normalizeLevel(value) {
   return ["easy", "normal", "hard"].includes(value) ? value : "normal";
+}
+
+function normalizeRedirectUri(value) {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string" || value.length > 500) {
+    throw Object.assign(new Error("L’URL de redirection est invalide."), { status: 400 });
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw Object.assign(new Error("L’URL de redirection est invalide."), { status: 400 });
+  }
+  const isLocalhost = ["localhost", "127.0.0.1"].includes(url.hostname);
+  if (url.protocol !== "https:" && !(isLocalhost && url.protocol === "http:")) {
+    throw Object.assign(new Error("L’URL de redirection doit utiliser HTTPS."), { status: 400 });
+  }
+  if (!config.allowedRedirectOrigins.has(url.origin)) {
+    throw Object.assign(new Error("Cette origine de redirection n’est pas autorisée."), { status: 400 });
+  }
+  url.username = "";
+  url.password = "";
+  url.hash = "";
+  return url.href;
 }
 
 function hashAnswer(answer, salt) {
@@ -270,6 +300,7 @@ const server = createServer(async (request, response) => {
       const body = await readJson(request);
       const user = normalizeUser(body.user);
       const level = normalizeLevel(body.level);
+      const redirectUri = normalizeRedirectUri(body.redirectUri);
       if (!user) return sendJson(response, 400, { error: "Le nom de l'utilisateur est obligatoire." }, cors);
 
       const id = generateId();
@@ -280,6 +311,7 @@ const server = createServer(async (request, response) => {
         id,
         user,
         level,
+        redirectUri,
         type: generated.type,
         prompt: generated.prompt,
         svg: generated.svg,
@@ -291,12 +323,14 @@ const server = createServer(async (request, response) => {
         expiresAt: now + CHALLENGE_TTL
       });
 
-      const frontendLink = `${config.frontendUrl}/craftpickantibot/captcha.html?id=${id}`;
+      const frontendLink = new URL(`${config.frontendUrl}/craftpickantibot/captcha.html`);
+      frontendLink.searchParams.set("id", id);
+      if (redirectUri) frontendLink.searchParams.set("redirect_uri", redirectUri);
       return sendJson(response, 201, {
         id,
         user,
         level,
-        url: frontendLink,
+        url: frontendLink.href,
         expiresAt: new Date(now + CHALLENGE_TTL).toISOString()
       }, cors);
     }
@@ -387,10 +421,19 @@ const server = createServer(async (request, response) => {
         exp: now + VERIFIED_TTL,
         nonce: randomBytes(12).toString("hex")
       });
+      let redirectUrl = null;
+      if (item.redirectUri) {
+        const destination = new URL(item.redirectUri);
+        destination.searchParams.set("captcha_status", "success");
+        destination.searchParams.set("captcha_id", item.id);
+        destination.searchParams.set("captcha_token", token);
+        redirectUrl = destination.href;
+      }
       challenges.delete(item.id);
       return sendJson(response, 200, {
         success: true,
         token,
+        redirectUrl,
         expiresAt: new Date(now + VERIFIED_TTL).toISOString()
       }, cors);
     }
@@ -409,7 +452,7 @@ const server = createServer(async (request, response) => {
 
     return sendJson(response, 404, { error: "Route introuvable." }, cors);
   } catch (error) {
-    console.error(error);
+    if (!error.status || error.status >= 500) console.error(error);
     return sendJson(response, error.status || 500, {
       error: error.status ? error.message : "Erreur interne du serveur."
     }, cors);
