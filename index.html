@@ -48,6 +48,12 @@
           <input id="username" name="username" type="text" maxlength="32" placeholder="Exemple : Louis" required autocomplete="off">
         </div>
 
+        <label for="redirect-uri">URL de redirection <small>(facultatif)</small></label>
+        <div class="input-wrap">
+          <span aria-hidden="true">↗</span>
+          <input id="redirect-uri" name="redirect_uri" type="url" maxlength="500" placeholder="https://monsite.fr/connexion/terminee" autocomplete="url">
+        </div>
+
         <label for="difficulty">Niveau de vérification</label>
         <div class="difficulty-grid" id="difficulty">
           <label class="choice">
