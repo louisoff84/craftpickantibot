@@ -117,7 +117,11 @@ function createChallenge() {
     if (serverChallenge.type === "image") {
       canvas.hidden = true;
       mathQuestion.hidden = true;
-      captchaImage.src = serverChallenge.imageUrl;
+      captchaImage.src = new URL(serverChallenge.imageUrl, `${apiUrl}/`).href;
+      captchaImage.onerror = () => {
+        captchaImage.hidden = true;
+        attemptMessage.textContent = "Impossible de charger l’image CAPTCHA. Actualisez la page.";
+      };
       captchaImage.hidden = false;
     } else {
       canvas.hidden = true;
