@@ -1,5 +1,6 @@
 const form = document.querySelector("#captcha-form");
 const usernameInput = document.querySelector("#username");
+const redirectInput = document.querySelector("#redirect-uri");
 const result = document.querySelector("#result");
 const generatedUrl = document.querySelector("#generated-url");
 const resultId = document.querySelector("#result-id");
@@ -21,6 +22,7 @@ function buildUrl(config) {
   url.searchParams.set("id", config.id);
   url.searchParams.set("user", config.user);
   url.searchParams.set("level", config.level);
+  if (config.redirectUri) url.searchParams.set("redirect_uri", config.redirectUri);
   return url.href;
 }
 
@@ -36,6 +38,7 @@ function showGeneratedLink(config, suppliedUrl = "") {
 async function generateLink() {
   const user = usernameInput.value.trim().replace(/\s+/g, " ");
   const level = new FormData(form).get("level");
+  const redirectUri = redirectInput.value.trim();
   if (!user) return usernameInput.focus();
 
   const button = form.querySelector('button[type="submit"]');
@@ -46,14 +49,14 @@ async function generateLink() {
       const response = await fetch(`${apiUrl}/api/captchas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user, level })
+        body: JSON.stringify({ user, level, redirectUri })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Impossible de générer le CAPTCHA.");
-      lastConfig = { id: payload.id, user, level };
+      lastConfig = { id: payload.id, user, level, redirectUri };
       showGeneratedLink(lastConfig, payload.url);
     } else {
-      lastConfig = { id: createId(), user, level };
+      lastConfig = { id: createId(), user, level, redirectUri };
       showGeneratedLink(lastConfig);
     }
   } catch (error) {
