@@ -32,6 +32,9 @@ const config = {
       .map((origin) => origin.trim().replace(/\/$/, ""))
       .filter(Boolean)
   ),
+  allowAllRedirectOrigins: (process.env.ALLOWED_REDIRECT_ORIGINS || "")
+    .split(",")
+    .some((origin) => origin.trim() === "*"),
   tokenSecret: process.env.TOKEN_SECRET || "",
   adminApiKey: process.env.ADMIN_API_KEY || "",
   trustProxy: process.env.TRUST_PROXY === "true"
@@ -141,7 +144,7 @@ function normalizeRedirectUri(value) {
   if (url.protocol !== "https:" && !(isLocalhost && url.protocol === "http:")) {
     throw Object.assign(new Error("L’URL de redirection doit utiliser HTTPS."), { status: 400 });
   }
-  if (!config.allowedRedirectOrigins.has(url.origin)) {
+  if (!config.allowAllRedirectOrigins && !config.allowedRedirectOrigins.has(url.origin)) {
     throw Object.assign(new Error("Cette origine de redirection n’est pas autorisée."), { status: 400 });
   }
   url.username = "";
