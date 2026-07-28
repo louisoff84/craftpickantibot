@@ -352,6 +352,12 @@ footer strong { color: #9e8cef; }
   border-radius: 9px;
   background: #eceef7;
 }
+.captcha-server-image {
+  width: 100%;
+  height: auto;
+  border-radius: 9px;
+  background: #eceef7;
+}
 .math-question {
   margin: 5px 0 12px;
   padding: 24px;
