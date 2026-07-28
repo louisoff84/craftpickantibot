@@ -1,6 +1,7 @@
 const form = document.querySelector("#captcha-form");
 const usernameInput = document.querySelector("#username");
 const redirectInput = document.querySelector("#redirect-uri");
+const rememberRedirect = document.querySelector("#remember-redirect");
 const result = document.querySelector("#result");
 const generatedUrl = document.querySelector("#generated-url");
 const resultId = document.querySelector("#result-id");
@@ -10,6 +11,11 @@ const newLinkButton = document.querySelector("#new-link");
 
 let lastConfig = null;
 const apiUrl = (window.CRAFTPICK_API_URL || "").replace(/\/$/, "");
+const savedRedirectUri = localStorage.getItem("craftpick-default-redirect-uri") || "";
+if (savedRedirectUri) {
+  redirectInput.value = savedRedirectUri;
+  rememberRedirect.checked = true;
+}
 
 function createId() {
   const values = new Uint32Array(2);
@@ -40,6 +46,11 @@ async function generateLink() {
   const level = new FormData(form).get("level");
   const redirectUri = redirectInput.value.trim();
   if (!user) return usernameInput.focus();
+  if (rememberRedirect.checked && redirectUri) {
+    localStorage.setItem("craftpick-default-redirect-uri", redirectUri);
+  } else if (!rememberRedirect.checked) {
+    localStorage.removeItem("craftpick-default-redirect-uri");
+  }
 
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
