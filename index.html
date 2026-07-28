@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Créez un lien Craftpick Captcha personnalisé en quelques secondes.">
+  <title>Craftpick Captcha — Générateur</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-glow glow-one"></div>
+  <div class="background-glow glow-two"></div>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Accueil Craftpick Captcha">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span>Craftpick <strong>Captcha</strong></span>
+    </a>
+    <span class="status"><span></span> Service opérationnel</span>
+  </header>
+
+  <main class="generator-layout">
+    <section class="hero">
+      <p class="eyebrow">Protection anti-bot simple</p>
+      <h1>Crée ton CAPTCHA<br><span>en un seul lien.</span></h1>
+      <p class="hero-copy">Génère une page de vérification personnalisée, partage son URL et laisse Craftpick vérifier les visiteurs suspects.</p>
+
+      <div class="feature-row">
+        <div><span>01</span><p>ID unique</p></div>
+        <div><span>02</span><p>Défi intelligent</p></div>
+        <div><span>03</span><p>Résultat instantané</p></div>
+      </div>
+    </section>
+
+    <section class="panel generator-panel" aria-labelledby="generator-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Nouveau lien</p>
+          <h2 id="generator-title">Configurer le CAPTCHA</h2>
+        </div>
+        <span class="shield-icon" aria-hidden="true">✓</span>
+      </div>
+
+      <form id="captcha-form">
+        <label for="username">Nom de l'utilisateur</label>
+        <div class="input-wrap">
+          <span aria-hidden="true">@</span>
+          <input id="username" name="username" type="text" maxlength="32" placeholder="Exemple : Louis" required autocomplete="off">
+        </div>
+
+        <label for="difficulty">Niveau de vérification</label>
+        <div class="difficulty-grid" id="difficulty">
+          <label class="choice">
+            <input type="radio" name="level" value="easy" checked>
+            <span><strong>Simple</strong><small>Calcul rapide</small></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="level" value="normal">
+            <span><strong>Normal</strong><small>Code déformé</small></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="level" value="hard">
+            <span><strong>Renforcé</strong><small>Double contrôle</small></span>
+          </label>
+        </div>
+
+        <button class="primary-button" type="submit">
+          Générer mon lien <span aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <div id="result" class="generated-result" hidden>
+        <div class="result-label">
+          <span>Lien généré</span>
+          <span id="result-id"></span>
+        </div>
+        <div class="url-box">
+          <input id="generated-url" readonly aria-label="URL générée">
+          <button id="copy-button" type="button">Copier</button>
+        </div>
+        <div class="result-actions">
+          <a id="open-link" class="secondary-button" target="_blank" rel="noopener">Tester le CAPTCHA</a>
+          <button id="new-link" class="text-button" type="button">Générer un nouvel ID</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Made with care by <strong>Craftpick</strong> · Aucune donnée personnelle n'est envoyée.</footer>
+  <script src="generator.js"></script>
+</body>
+</html>
