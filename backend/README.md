@@ -27,7 +27,7 @@ openssl rand -hex 32
 | `HOST` | Adresse d'écoute, `0.0.0.0` par défaut |
 | `PUBLIC_API_URL` | URL publique HTTPS de l'API |
 | `FRONTEND_URL` | Origine autorisée, par défaut `https://louisoff84.github.io` |
-| `ALLOWED_REDIRECT_ORIGINS` | Origines de redirection autorisées, séparées par des virgules |
+| `ALLOWED_REDIRECT_ORIGINS` | Origines autorisées séparées par des virgules, ou `*` pour accepter toutes les origines HTTPS |
 | `TOKEN_SECRET` | Secret HMAC d'au moins 32 caractères |
 | `ADMIN_API_KEY` | Clé privée utilisée pour vérifier les jetons |
 | `TRUST_PROXY` | `true` derrière Nginx ou Cloudflare |
@@ -51,6 +51,14 @@ Après validation, l'API ajoute automatiquement à la redirection :
 
 L'origine de `redirectUri` doit être présente dans `ALLOWED_REDIRECT_ORIGINS`.
 Cette valeur est enregistrée côté serveur depuis le dashboard et n'est pas exposée dans le lien CAPTCHA public.
+
+Pour accepter tous les domaines HTTPS :
+
+```env
+ALLOWED_REDIRECT_ORIGINS=*
+```
+
+Le backend continue de refuser les protocoles dangereux comme `javascript:`, `data:` et `file:`.
 
 ### Obtenir le défi
 
