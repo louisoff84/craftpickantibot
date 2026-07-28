@@ -27,6 +27,7 @@ openssl rand -hex 32
 | `HOST` | Adresse d'écoute, `0.0.0.0` par défaut |
 | `PUBLIC_API_URL` | URL publique HTTPS de l'API |
 | `FRONTEND_URL` | Origine autorisée, par défaut `https://louisoff84.github.io` |
+| `ALLOWED_REDIRECT_ORIGINS` | Origines de redirection autorisées, séparées par des virgules |
 | `TOKEN_SECRET` | Secret HMAC d'au moins 32 caractères |
 | `ADMIN_API_KEY` | Clé privée utilisée pour vérifier les jetons |
 | `TRUST_PROXY` | `true` derrière Nginx ou Cloudflare |
@@ -39,8 +40,16 @@ openssl rand -hex 32
 POST /api/captchas
 Content-Type: application/json
 
-{"user":"Louis","level":"normal"}
+{"user":"Louis","level":"normal","redirectUri":"https://craftpick.fr/connexion/terminee"}
 ```
+
+Après validation, l'API ajoute automatiquement à la redirection :
+
+```text
+?captcha_status=success&captcha_id=65144351&captcha_token=JETON_SIGNE
+```
+
+L'origine de `redirectUri` doit être présente dans `ALLOWED_REDIRECT_ORIGINS`.
 
 ### Obtenir le défi
 
